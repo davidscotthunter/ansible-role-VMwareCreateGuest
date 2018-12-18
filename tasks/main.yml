@@ -1,0 +1,90 @@
+---
+#
+# IP and hostname validation section
+#
+- name: Verify templates IP address is free
+  command: 'ping -c 2 192.168.1.10'
+  register: template_ping
+  failed_when: ( template_ping.rc == 0 )
+
+- name: Verify IP address free / unassigned
+  command: 'ping -c 2 "{{ prov_ip_addr }}"'
+  register: ping_test
+  failed_when: ( ping_test.rc == 0 )
+
+#
+# Create Ubuntu 16 guest from templates
+#
+- name: Create Ubuntu 16 guest from template
+  vmware_guest:
+    hostname: vcenter.corp.example.com
+    username: "{{ vcenter_user }}"
+    password: "{{ vcenter_pass }}"
+    validate_certs: no
+    state: poweredon
+    annotation: "Owner: {{ prov_owner }}{{ newline }}Purpose: {{ prov_purpose }}"
+    guest_id: ubuntu64Guest
+    folder: "/vm/NewHosts"
+    name: "{{ prov_hostname }}"
+#   esxi_hostname: "{{ dest_vm_host }}.corp.example.com"
+    template: "ubuntutemplate01"
+    cluster: Cluster1
+#   resource_pool: Resources
+    datacenter: CORP
+#   datacenter: "{{ dest_vm_datacenter }}"
+    disk:
+    - size_gb: "{{ vm_disk_size }}"
+      type: thin
+      autoselect_datastore: true
+    hardware:
+      memory_mb: "{{ vm_mem_size }}"
+      num_cpus: "{{ vm_vcpu_num }}"
+    networks:
+      - name: "VLAN1"
+        ip: "{{ prov_ip_addr }}"
+        type: static
+        netmask: 255.255.255.0
+        gateway: 192.168.1.1
+        dns_servers:
+        - 192.168.1.30
+        - 192.168.1.31
+        domain: corp.example.com
+  when: ( prov_distro == "Ubuntu 16" )
+
+#
+# Create CentOS 7 guest from templates
+#
+- name: Create CentOS 7 guest from template
+  vmware_guest:
+    hostname: vcenter.corp.example.com
+    username: "{{ vcenter_user }}"
+    password: "{{ vcenter_pass }}"
+    validate_certs: no
+    state: poweredon
+    annotation: "Owner: {{ prov_owner }}{{ newline }}Purpose: {{ prov_purpose }}"
+    guest_id: centos64Guest
+    folder: "/vm/NewHosts"
+    name: "{{ prov_hostname }}"
+#   esxi_hostname: "{{ dest_vm_host }}.corp.example.com"
+    template: "centostemplate00"
+    cluster: Cluster1
+#   resource_pool: Resources
+    datacenter: CORP
+    disk:
+    - size_gb: "{{ vm_disk_size }}"
+      type: thin
+      autoselect_datastore: true
+    hardware:
+      memory_mb: "{{ vm_mem_size }}"
+      num_cpus: "{{ vm_vcpu_num }}"
+    networks:
+      - name: "VLAN1"
+        ip: "{{ prov_ip_addr }}"
+        type: static
+        netmask: 255.255.255.0
+        gateway: 192.168.1.1
+        dns_servers:
+        - 192.168.1.21
+        - 192.168.1.22
+        domain: corp.example.com
+  when: ( prov_distro == "CentOS 7" )
